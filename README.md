@@ -1,3 +1,13 @@
+
+---
+title: Code Review OpenEnv Environment
+emoji: 🧠
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+---
+
 # Code Review OpenEnv Environment
 
 ## Description
@@ -20,10 +30,14 @@ The agent outputs a text review comment describing issues in the code.
 Reward is based on correctness of the review.
 
 Score range:
+
 0.0 – incorrect  
 0.5 – partially correct  
-1.0 – correct identification
+1.0 – correct identification  
 
 ## Running the Project
 
 Install dependencies:
+
+```bash
+pip install -r requirements.txt

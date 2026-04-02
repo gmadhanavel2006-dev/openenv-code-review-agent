@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Review OpenEnv Environment</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .task-selector {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .task-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .code-display {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .review-section {
+            margin: 20px 0;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Code Review OpenEnv Environment</h1>
+        <p style="text-align: center; color: #7f8c8d;">AI-powered code review training environment with three difficulty levels</p>
+
+        <div class="task-selector">
+            <h3>Select a Task Difficulty:</h3>
+            <div class="task-buttons">
+                <button onclick="selectTask('easy')" id="easy-btn">Easy - Syntax Errors</button>
+                <button onclick="selectTask('medium')" id="medium-btn">Medium - Security Issues</button>
+                <button onclick="selectTask('hard')" id="hard-btn">Hard - Advanced Security</button>
+            </div>
+        </div>
+
+        <div id="code-section" class="hidden">
+            <h3>Code to Review:</h3>
+            <div id="code-display" class="code-display">Loading code...</div>
+
+            <div class="review-section">
+                <h3>Your Code Review:</h3>
+                <textarea id="review-input" placeholder="Write your code review comments here... Identify bugs, security issues, or improvements."></textarea>
+                <br><br>
+                <button onclick="submitReview()" id="submit-btn">Submit Review</button>
+                <span id="loading" class="loading hidden"></span>
+            </div>
+
+            <div id="result" class="result">
+                <h3>Review Result:</h3>
+                <div id="score-display" class="score"></div>
+                <div id="feedback"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTask = null;
+
+        async function selectTask(task) {
+            currentTask = task;
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('submit-btn').disabled = true;
+
+            // Update button states
+            ['easy', 'medium', 'hard'].forEach(t => {
+                document.getElementById(t + '-btn').disabled = false;
+            });
+            document.getElementById(task + '-btn').disabled = true;
+
+            try {
+                const response = await fetch(`/api/reset?task=${task}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('code-display').textContent = data.observation.code_snippet;
+                    document.getElementById('code-section').classList.remove('hidden');
+                    document.getElementById('result').classList.add('hidden');
+                    document.getElementById('review-input').value = '';
+                } else {
+                    showError(data.detail);
+                }
+            } catch (error) {
+                showError('Failed to load task: ' + error.message);
+            }
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('submit-btn').disabled = false;
+        }
+
+        async function submitReview() {
+            const review = document.getElementById('review-input').value.trim();
+            if (!review) {
+                showError('Please write a review before submitting.');
+                return;
+            }
+
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('submit-btn').disabled = true;
+
+            try {
+                const response = await fetch('/api/step', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ review_comment: review })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const score = data.reward.score;
+                    const scoreText = score === 1.0 ? 'Perfect! 🎉' :
+                                    score === 0.5 ? 'Partial Credit 👍' :
+                                    'Incorrect 😞';
+
+                    document.getElementById('score-display').textContent = `${score}/1.0 - ${scoreText}`;
+                    document.getElementById('score-display').style.color = score === 1.0 ? '#28a745' :
+                                                                       score === 0.5 ? '#ffc107' : '#dc3545';
+
+                    document.getElementById('feedback').textContent = `Your review: "${review}"`;
+                    document.getElementById('result').classList.remove('hidden', 'error');
+                    document.getElementById('result').classList.add('success');
+                } else {
+                    showError(data.detail);
+                }
+            } catch (error) {
+                showError('Failed to submit review: ' + error.message);
+            }
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('submit-btn').disabled = false;
+        }
+
+        function showError(message) {
+            document.getElementById('score-display').textContent = 'Error';
+            document.getElementById('score-display').style.color = '#dc3545';
+            document.getElementById('feedback').textContent = message;
+            document.getElementById('result').classList.remove('hidden', 'success');
+            document.getElementById('result').classList.add('error');
+            document.getElementById('code-section').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

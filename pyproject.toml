@@ -1,0 +1,19 @@
+[project]
+name = "openenv-code-review-agent"
+version = "0.1.0"
+description = "AI Code Review Environment for OpenEnv"
+authors = [{name = "Madhanavel"}]
+
+dependencies = [
+    "pydantic",
+    "openenv-core",
+    "fastapi",
+    "uvicorn",
+    "openai"
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[tool.openenv]
+entrypoint = "env.environment:CodeReviewEnv"

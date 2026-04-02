@@ -3,7 +3,6 @@ from env.environment import CodeReviewEnv
 
 app = FastAPI()
 
-# Create environment
 environment = CodeReviewEnv()
 
 
@@ -12,7 +11,7 @@ def root():
     return {"message": "Code Review OpenEnv API running"}
 
 
-@app.get("/api/reset")
+@app.post("/api/reset")
 def reset(task: str = "easy"):
     observation = environment.reset(task)
     return {"observation": observation}
